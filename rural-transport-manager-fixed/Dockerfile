@@ -1,20 +1,28 @@
-# Use official OpenJDK 17 image
-FROM openjdk:17-jdk-slim
+# Stage 1: Build the project with Maven
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+# Copy only pom.xml first (for dependency caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Install Maven
-RUN apt-get update && apt-get install -y maven
+# Now copy the rest of the source code
+COPY src ./src
 
-# Build the project
-RUN mvn clean package
+# Build the project, skip tests for faster build
+RUN mvn clean package -DskipTests
 
-# Expose the port your app runs on
+# Stage 2: Run the built JAR with a lightweight image
+FROM eclipse-temurin:17-jdk-jammy
+
+WORKDIR /app
+
+# Copy only the built jar from previous stage
+COPY --from=build /app/target/rural-transport-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
+
+# Expose port (Render injects PORT env var anyway)
 EXPOSE 8080
 
-# Run the jar
-CMD ["java", "-jar", "target/rural-transport-1.0-SNAPSHOT-jar-with-dependencies.jar"]
+# Run the app
+CMD ["java", "-jar", "app.jar"]
