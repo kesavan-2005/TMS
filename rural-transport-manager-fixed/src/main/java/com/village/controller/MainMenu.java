@@ -26,10 +26,20 @@ public class MainMenu {
         bookingService.addRoute("VillageA-VillageB", 12.5);
         bookingService.addRoute("VillageB-VillageC", 8.0);
 
-        // Start web server
-        WebServer server = new WebServer(8080, repo, vehicleService, bookingService, fareService, reportGenerator);
-        server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
-        System.out.println("Web server started at http://localhost:8080/");
+        // use PORT environment variable if provided (Render provides PORT)
+String portEnv = System.getenv("PORT");
+int port;
+try {
+    port = (portEnv != null && !portEnv.isBlank()) ? Integer.parseInt(portEnv) : 8080;
+} catch (NumberFormatException e) {
+    System.err.println("Invalid PORT env var '" + portEnv + "', falling back to 8080");
+    port = 8080;
+}
+
+WebServer server = new WebServer(port, repo, vehicleService, bookingService, fareService, reportGenerator);
+server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+System.out.println("Web server is running at http://0.0.0.0:" + port + "/");
+
 
         // Simple console menu
         Scanner sc = new Scanner(System.in);
